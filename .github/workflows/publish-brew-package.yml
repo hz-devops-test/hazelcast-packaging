@@ -147,8 +147,8 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: |
-            GH_BOT_TOKEN, ${{ vars.AWS_GH_BOT_USER_ID }} | API_TOKEN
-          parse-json-secrets: true
+            GH_BOT_TOKEN, ${{ vars.AWS_GH_BOT_USER_ID }}, API_TOKEN
+          parse-json-secrets: false
           
       - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
         run: |
