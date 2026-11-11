@@ -33,7 +33,7 @@ jobs:
   homebrew:
     name: Homebrew (`${{ inputs.HZ_DISTRIBUTION }}`)
     environment: ${{ inputs.ENVIRONMENT }}
-    runs-on: macos-14 ###macos-latest
+    runs-on: macos-latest
     permissions:
       id-token: write
     outputs:
