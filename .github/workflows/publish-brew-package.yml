@@ -160,7 +160,6 @@ jobs:
           TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }} 
         run: |
           echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
-          echo "bbbbbbbbbbbbbbb"
           gh repo sync "${TARGET_REPO}" \
             --source hazelcast/homebrew-hz \
             --force
@@ -177,6 +176,15 @@ jobs:
           # https://github.com/Homebrew/brew/issues/1505#issuecomment-260505067
           echo "BREW_GIT_REPO_LOCATION=$(brew --repo)/Library/Taps/${{ vars.BREW_GIT_REPO_NAME }}" >> ${GITHUB_ENV}
 
+      - name: Force README Diff for PR Test
+        if: ${{ inputs.ENVIRONMENT == 'test' || vars.ENVIRONMENT == 'test' }}
+        run: |
+          cd "${BREW_GIT_REPO_LOCATION}"
+          echo -e "\n<!-- Diagnostic test commit: run ${{ github.run_id }} -->" >> README.md
+          
+          # Verification: Ensure git detects the modified README
+          git status --short
+          
       - name: Change the artifact in ${{ env.BREW_GIT_REPO_LOCATION }}
         run: |
           ./build-hazelcast-homebrew-package.sh
