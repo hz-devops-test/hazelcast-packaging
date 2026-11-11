@@ -160,7 +160,7 @@ jobs:
           TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }} 
         run: |
           echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
-          echo "ZZZZZZZZZZZZZZZ"
+          echo "bbbbbbbbbbbbbbb"
           gh repo sync "${TARGET_REPO}" \
             --source hazelcast/homebrew-hz \
             --force
