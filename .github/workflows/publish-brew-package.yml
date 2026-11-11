@@ -152,7 +152,19 @@ jobs:
           secret-ids: |
             GH_USER, ${{ vars.AWS_GH_USER_ID }}
           parse-json-secrets: true
+
+      - name: Sync ${{ vars.BREW_GIT_REPO_NAME }} repo
+        if: ${{ inputs.ENVIRONMENT == 'test' }}
+        env:
+          GH_TOKEN: ${{ env.GH_USER_API_TOKEN }}
+          TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }} 
+        run: |
+          echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
           
+          gh repo sync "${TARGET_REPO}" \
+            --source hazelcast/homebrew-hz \
+            --force
+            
       - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
         run: |
           # Add a GitHub token be able to use a homebrew tap from the private repository
