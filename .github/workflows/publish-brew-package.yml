@@ -148,7 +148,7 @@ jobs:
         with:
           secret-ids: |
             GH_BOT, ${{ vars.AWS_GH_BOT_USER_ID }}
-          parse-json-secrets: false
+          parse-json-secrets: true
           
       - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
         run: |
