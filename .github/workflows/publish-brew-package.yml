@@ -33,7 +33,7 @@ jobs:
   homebrew:
     name: Homebrew (`${{ inputs.HZ_DISTRIBUTION }}`)
     environment: ${{ inputs.ENVIRONMENT }}
-    runs-on: macos-latest
+    runs-on: ubuntu-latest ## macos-latest
     permissions:
       id-token: write
     outputs:
@@ -52,6 +52,9 @@ jobs:
           repository: hazelcast/hazelcast-docker
           path: 'hazelcast-docker'
 
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        
       - name: Install up-to-date tools
         run: |
           brew install gnu-sed
