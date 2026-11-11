@@ -53,7 +53,7 @@ jobs:
           path: 'hazelcast-docker'
 
       - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: Homebrew/actions/setup-homebrew@main
         
       - name: Install up-to-date tools
         run: |
