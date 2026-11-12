@@ -198,8 +198,7 @@ jobs:
           TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }}
         run: |
           echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
-          TMP_DIR=$(mktemp -d)
-          cd "${TMP_DIR}"
+          cd "$(mktemp -d)"
 
           git clone \
             --bare \
