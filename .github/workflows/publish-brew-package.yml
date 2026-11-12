@@ -33,7 +33,7 @@ jobs:
   homebrew:
     name: Homebrew (`${{ inputs.HZ_DISTRIBUTION }}`)
     environment: ${{ inputs.ENVIRONMENT }}
-    runs-on: macos-latest
+    runs-on: ubuntu-latest ## macos-latest XX
     permissions:
       id-token: write
     outputs:
@@ -52,6 +52,9 @@ jobs:
           repository: hazelcast/hazelcast-docker
           path: 'hazelcast-docker'
 
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+        
       - name: Install up-to-date tools
         run: |
           brew install gnu-sed
@@ -137,31 +140,104 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEV_INFRA_OIDC_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: 'us-east-1'
 
-      # - name: Get Secrets
-      #   uses: aws-actions/aws-secretsmanager-get-secrets@v3
-      #   with:
-      #     secret-ids: |
-      #       GITHUB/DEVOPSHAZELCAST
-      #     parse-json-secrets: true
       - name: Get Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v3
         with:
           secret-ids: |
             GH_USER, ${{ vars.AWS_GH_USER_ID }}
           parse-json-secrets: true
-          
-      - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
+
+      # - name: Sync ${{ vars.BREW_GIT_REPO_NAME }} repo
+      #   if: ${{ inputs.ENVIRONMENT == 'test' }}
+      #   env:
+      #     GH_TOKEN: ${{ env.GH_USER_API_TOKEN }}
+      #     TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }}
+      #   run: |
+      #     echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
+      #     cd "$(mktemp -d)"
+
+      #     git clone \
+      #       --bare \
+      #       "https://github.com/hazelcast/homebrew-hz.git" \
+      #       .
+
+      #     git push \
+      #       --force \
+      #       "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" \
+      #       refs/heads/master:refs/heads/master
+      - name: Sync ${{ vars.BREW_GIT_REPO_NAME }} repo
+        if: ${{ inputs.ENVIRONMENT == 'test' }}
+        env:
+          GH_TOKEN: ${{ env.GH_USER_API_TOKEN }}
+          SOURCE_REPO: hazelcast/homebrew-hz
+          TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }}
+          DEFAULT_BRANCH: master
         run: |
-          # Add a GitHub token be able to use a homebrew tap from the private repository
+          echo "Syncing '${DEFAULT_BRANCH}@${TARGET_REPO}' from '${DEFAULT_BRANCH}@${SOURCE_REPO}'"
+          cd "$(mktemp -d)"
+
+          git clone \
+            --bare \
+            "${GITHUB_SERVER_URL}/${SOURCE_REPO}.git" \
+            .
+
+          BASIC_AUTH=$(printf "x-access-token:%s" "${GH_TOKEN}" | base64)
+          git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic ${BASIC_AUTH}" \
+            push \
+            --force \
+            "${GITHUB_SERVER_URL}/${TARGET_REPO}.git" \
+            "refs/heads/${DEFAULT_BRANCH}:refs/heads/${DEFAULT_BRANCH}"
+            
+      # - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
+      #   run: |
+      #     # Add a GitHub token be able to use a homebrew tap from the private repository
+      #     git config --global url."https://${GH_USER_API_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      #     # Checkout via homebrew so that we can modify and test locally without having to push to the main upstream branch
+      #     brew tap ${{ vars.BREW_TAP_NAME }}
+      #     brew trust ${{ vars.BREW_TAP_NAME }}
+
+      #     # https://github.com/Homebrew/brew/issues/1505#issuecomment-260505067
+      #     echo "BREW_GIT_REPO_LOCATION=$(brew --repo)/Library/Taps/${{ vars.BREW_GIT_REPO_NAME }}" >> ${GITHUB_ENV}
+
+      - name: Checkout ${{ vars.BREW_GIT_REPO_NAME }} repo
+        env:
+          RETRIES: 5
+          BREW_TAP_NAME: ${{ vars.BREW_TAP_NAME }}
+          BREW_GIT_REPO_NAME: ${{ vars.BREW_GIT_REPO_NAME }}
+        run: |
+          # Add a GitHub token to be able to use a homebrew tap from the private repository
           git config --global url."https://${GH_USER_API_TOKEN}@github.com/".insteadOf "https://github.com/"
 
           # Checkout via homebrew so that we can modify and test locally without having to push to the main upstream branch
-          brew tap ${{ vars.BREW_TAP_NAME }}
-          brew trust ${{ vars.BREW_TAP_NAME }}
+          for attempt in $(seq 1 "${RETRIES}"); do
+            if brew tap "${BREW_TAP_NAME}"; then
+              break
+            fi
+
+            if [ "${attempt}" -eq "${RETRIES}" ]; then
+              echo "brew tap ${BREW_TAP_NAME} failed after ${RETRIES} attempts."
+              exit 1
+            fi
+
+            echo "brew tap failed (attempt ${attempt}/${RETRIES}), retrying in 2s..."
+            rm -rf "$(brew --repo)/Library/Taps/${BREW_GIT_REPO_NAME}"
+            sleep 2
+          done
+
+          brew trust "${BREW_TAP_NAME}"
 
           # https://github.com/Homebrew/brew/issues/1505#issuecomment-260505067
-          echo "BREW_GIT_REPO_LOCATION=$(brew --repo)/Library/Taps/${{ vars.BREW_GIT_REPO_NAME }}" >> ${GITHUB_ENV}
-
+          echo "BREW_GIT_REPO_LOCATION=$(brew --repo)/Library/Taps/${BREW_GIT_REPO_NAME}" >> "${GITHUB_ENV}"
+      - name: Force README Diff for PR Test
+        if: ${{ inputs.ENVIRONMENT == 'test' || vars.ENVIRONMENT == 'test' }}
+        run: |
+          cd "${BREW_GIT_REPO_LOCATION}"
+          echo -e "\n<!-- Diagnostic test commit: run ${{ github.run_id }} -->" >> README.md
+          
+          # Verification: Ensure git detects the modified README
+          git status --short
+          
       - name: Change the artifact in ${{ env.BREW_GIT_REPO_LOCATION }}
         run: |
           ./build-hazelcast-homebrew-package.sh
