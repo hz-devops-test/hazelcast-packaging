@@ -33,7 +33,7 @@ jobs:
   homebrew:
     name: Homebrew (`${{ inputs.HZ_DISTRIBUTION }}`)
     environment: ${{ inputs.ENVIRONMENT }}
-    runs-on: ubuntu-latest ## macos-latest XX
+    runs-on: macos-latest  ##ubuntu-latest ## macos-latest XX
     permissions:
       id-token: write
     outputs:
@@ -52,8 +52,8 @@ jobs:
           repository: hazelcast/hazelcast-docker
           path: 'hazelcast-docker'
 
-      - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@main
+      # - name: Set up Homebrew
+      #   uses: Homebrew/actions/setup-homebrew@main
         
       - name: Install up-to-date tools
         run: |
