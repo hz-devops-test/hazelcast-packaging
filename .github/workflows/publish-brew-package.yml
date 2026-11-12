@@ -173,6 +173,24 @@ jobs:
       #     git clone --bare "https://x-access-token:${GH_TOKEN}@github.com/hazelcast/homebrew-hz.git" /tmp/upstream-homebrew
       #     git -C /tmp/upstream-homebrew push --force "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" refs/heads/master:refs/heads/master
       #     rm -rf /tmp/upstream-homebrew
+      # - name: Sync ${{ vars.BREW_GIT_REPO_NAME }} repo
+      #   if: ${{ inputs.ENVIRONMENT == 'test' }}
+      #   env:
+      #     GH_TOKEN: ${{ env.GH_USER_API_TOKEN }}
+      #     TARGET_REPO: ${{ vars.BREW_GIT_REPO_NAME }}
+      #   run: |
+      #     echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
+      #     TMP_DIR=$(mktemp -d)
+
+      #     git clone \
+      #       --bare \
+      #       "https://github.com/hazelcast/homebrew-hz.git" \
+      #       "${TMP_DIR}"
+
+      #     git -C "${TMP_DIR}" push \
+      #       --force \
+      #       "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" \
+      #       refs/heads/master:refs/heads/master
       - name: Sync ${{ vars.BREW_GIT_REPO_NAME }} repo
         if: ${{ inputs.ENVIRONMENT == 'test' }}
         env:
@@ -181,13 +199,14 @@ jobs:
         run: |
           echo "Syncing default branch of ${TARGET_REPO} from hazelcast/homebrew-hz..."
           TMP_DIR=$(mktemp -d)
+          cd "${TMP_DIR}"
 
           git clone \
             --bare \
             "https://github.com/hazelcast/homebrew-hz.git" \
-            "${TMP_DIR}"
+            .
 
-          git -C "${TMP_DIR}" push \
+          git push \
             --force \
             "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" \
             refs/heads/master:refs/heads/master
